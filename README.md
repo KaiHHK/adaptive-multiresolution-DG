@@ -2,7 +2,9 @@
 
 This is an adaptive multiresolution discontinuous Galerkin (DG) C++ package for solving partial differential equations in high dimensions.
 
-  
+
+## This branch is for PETSc updates.
+
 
 ## Papers
 
