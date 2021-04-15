@@ -72,6 +72,7 @@ public:
 	std::vector<VecMultiD<double>> ucoe_alpt_t_m1;	// coefficients at t_(n-1), this will be used in multistep class
 	std::vector<VecMultiD<double>> ucoe_alpt_predict;
 	std::vector<VecMultiD<double>> ucoe_alpt_predict_t_m1;
+	std::vector<VecMultiD<double>> ucoe_alpt_next;  // coefficients of u at next time step
 	std::vector<VecMultiD<double>> ucoe_tn;		// coefficients at t_n, this will be used in RK class
 	std::vector<VecMultiD<double>> ucoe_ut;		// coefficients of v = u_t
 	std::vector<VecMultiD<double>> ucoe_ut_predict;		// coefficients of v = u_t
@@ -111,6 +112,8 @@ public:
 	std::vector< VecMultiD<std::vector<double> > > ucoe_intp_inter;
 	/// values of u at interpolation points
 	std::vector< VecMultiD<double> > up_intp;
+	/// values of NEXT STEP u at interpolation points; note that up_intp above is for current step
+	std::vector< VecMultiD<double> > up_intp_next;
 		
 	// ------------------------------------------------------------------------------------------------------------------------
 	// 

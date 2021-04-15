@@ -441,6 +441,57 @@ std::vector<double> DGSolution::get_error_Lag(std::vector< std::vector< std::fun
 
 }
 
+
+// compute the error for flux functions, regarding different dimension and unknowns; return value has the size VEC_NUM*DIM*3 if is_intp is true with size VEC_NUM*DIM
+std::vector<std::vector<std::vector<double>>> DGSolution::get_error_Lag_CompDimWise(std::function<double(std::vector<double>, int, int)> func, const int gauss_points, std::vector< std::vector<bool> > is_intp) const
+{
+	auto err_fun = [&](std::vector<double> x, int ii, int dd) ->double
+	{
+		return std::abs(val_Lag(x, ii, dd) - func(x, ii, dd));
+	};
+
+	std::vector<std::vector<double>> empty_list(DIM,std::vector<double>());
+	std::vector<std::vector<std::vector<double>>> return_err(VEC_NUM,empty_list);
+
+	for (int i = 0; i < VEC_NUM; i++)
+		for (int d = 0; d < DIM; d++)
+			if (is_intp[i][d] == true)
+			{
+				Quad quad(DIM);
+				return_err[i][d] = quad.norm_multiD(err_fun, i, d, NMAX, gauss_points);
+			}
+
+	return return_err;
+}
+
+
+std::vector<std::vector<double>> DGSolution::get_error_Lag_DimWise(std::function<double(std::vector<double>, int, int)> func, const int gauss_points, std::vector< std::vector<bool> > is_intp) const
+{
+	std::vector<std::vector<double>> return_err(DIM,std::vector<double>());
+
+	for (int d = 0; d < DIM; d++)
+	{
+		bool is_intp_DIM = false;
+		for (int i = 0; i < VEC_NUM; i++) is_intp_DIM = (is_intp_DIM || is_intp[i][d]);
+		if (is_intp_DIM)
+		{
+			auto err_fun = [&](std::vector<double> x)->double
+			{
+				double tot = 0.;
+				for (int i = 0; i < VEC_NUM; i++)
+					if (is_intp[i][d])
+						tot += std::pow(val_Lag(x, i, d) - func(x, i, d), 2.);
+				return std::sqrt(tot);
+			};
+			Quad quad(DIM);
+			return_err[d] = quad.norm_multiD(err_fun, NMAX, gauss_points);
+		}
+	}
+
+	return return_err;
+}
+
+
 // compute the error for all flux functions
 std::vector<double> DGSolution::get_error_Her(std::vector< std::vector< std::function<double(std::vector<double>)> > > func, const int gauss_points) const
 {
@@ -1011,6 +1062,30 @@ void DGSolution::copy_ucoe_ut_to_ucoe()
 			iter.second.ucoe_alpt[i] = iter.second.ucoe_ut[i];
 		}
 	}
+}
+
+// copy Element::ucoe_alpt to Element::ucoe_alpt_next
+void DGSolution::copy_ucoe_current_to_next()
+{
+	for (auto & iter : dg)
+	{
+		for (size_t i = 0; i < VEC_NUM; i++)
+		{
+			iter.second.ucoe_alpt_next[i] = iter.second.ucoe_alpt[i];
+		}
+	}	
+}
+
+// copy Element::ucoe_alpt_next to Element::ucoe_alpt
+void DGSolution::copy_ucoe_next_to_current()
+{
+	for (auto & iter : dg)
+	{
+		for (size_t i = 0; i < VEC_NUM; i++)
+		{
+			iter.second.ucoe_alpt[i] = iter.second.ucoe_alpt_next[i];
+		}
+	}	
 }
 
 void DGSolution::update_viscosity_intersect_element()

@@ -48,6 +48,7 @@ Element::Element(const std::vector<int> & level_, const std::vector<int> & suppt
 		VecMultiD<double> a(DIM, PMAX_intp+1);
 		ucoe_intp.push_back(a);
 		up_intp.push_back(a);
+		up_intp_next.push_back(a);
 	}
 
 	VecMultiD<std::vector<double> > b(DIM, PMAX_intp+1);
@@ -65,6 +66,7 @@ Element::Element(const std::vector<int> & level_, const std::vector<int> & suppt
 	ucoe_alpt_t_m1 = vec_init;
 	ucoe_alpt_predict = vec_init;
 	ucoe_alpt_predict_t_m1 = vec_init;
+	ucoe_alpt_next = vec_init;
 	ucoe_tn = vec_init;
 	ucoe_ut = vec_init;
 	ucoe_ut_predict = vec_init;

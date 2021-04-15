@@ -1,20 +1,25 @@
-CXX = g++-10 -fopenmp
+#CXX = g++-10 -fopenmp
+CXX = mpicxx -fopenmp
 
 # CPPFLAGS = -std=c++17 -g
-CPPFLAGS = -std=c++17 -O3
+# CPPFLAGS = -std=c++17 -O3
+CPPFLAGS = -std=c++17 -O3 -lpetsc -lm
 #-Wall: open all warnings
 
-INCLUDES = -I include/ -I /usr/local/Cellar/eigen/3.3.7/include/eigen3 
+#INCLUDES = -I include/ -I /usr/local/Cellar/eigen/3.3.7/include/eigen3 
 #INCLUDES = -I include/ -I Eigen_3_3/
+INCLUDES = -I include/ -I Eigen/eigen-3.3.9/ -I gtest/googletest-release-1.10.0/googletest/include/
 
 ## gtest library as static library, with library file *.a stored in ./lib/
-GTEST_LIBFLAGS = ./lib/libgtest.a
+## in hpcc : gtest 1.10.0 download, cmake 3.16.1 requiring GCCcore/7.3.0
+## GTEST_LIBFLAGS = ./lib/libgtest.a
+GTEST_LIBFLAGS = ./gtest/googletest-release-1.10.0/googletest/build/lib/libgtest.a
 ## gtest library as shared library, with library file *.so stored in /usr/local/lib/; require sudo; some configuration might be needed
 #GTEST_LIBFLAGS = -lgtest
 
 
-DYLBFLAGS = -dynamiclib
-#DYLBFLAGS = -shared
+#DYLBFLAGS = -dynamiclib
+DYLBFLAGS = -shared
 
 CURRENT_VERSION = 1.0.1
 CURRENT_SONAME = 1
@@ -175,12 +180,19 @@ $(BIN_PATH)/%.o : $(EXAMPLE_PATH)/%.$(SRC_EXT)
 .PHONY: $(BIN_PATH)/%
 $(BIN_PATH)/% : $(BIN_PATH)/%.o | sharedlib
 	@echo "Link all the shared library of sgdg and $< to get executable $@ for examples\n"
-	@$(CXX) -o $@ -L $(LIB_PATH)/ $< $(LIB_PATH)/libsgdg.so.$(CURRENT_VERSION)
+	@$(CXX) -o $@ -L $(LIB_PATH)/ $< $(LIB_PATH)/libsgdg.so.$(CURRENT_VERSION) $(CPPFLAGS)
+
+# CPPFLAGS is added here again, since we need -lpetsc -lm flag
 
 
 
 
 
+
+
+
+
+ 
 
 
 

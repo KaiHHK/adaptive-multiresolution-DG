@@ -98,6 +98,10 @@ public:
 	// compute the error for all flux functions (# of flux = Const::VEC_NUM * Const::DIM)
 	std::vector<double> get_error_Lag(std::function<double(std::vector<double>, int, int)>func, const int gauss_points, std::vector< std::vector<bool> > is_intp) const;
 	std::vector<double> get_error_Lag(std::vector< std::vector< std::function<double(std::vector<double>)> > >func, const int gauss_points) const;
+	// compute the error for flux functions, regarding different dimension and unknowns; return value has the size VEC_NUM*DIM*3 if is_intp is true with size VEC_NUM*DIM
+	std::vector<std::vector<std::vector<double>>> get_error_Lag_CompDimWise(std::function<double(std::vector<double>, int, int)>func, const int gauss_points, std::vector< std::vector<bool> > is_intp) const;
+	// compute the error for flux functions, regarding different dimension and ALL unknowns; return value has size DIM*3 if is_intp is true with size VEC_NUM*DIM
+	std::vector<std::vector<double>> get_error_Lag_DimWise(std::function<double(std::vector<double>, int, int)>func, const int gauss_points, std::vector< std::vector<bool> > is_intp) const;
 
 	std::vector<double> get_error_Lag(std::function<double(std::vector<double>)> func, const int gauss_points) const;
 
@@ -164,6 +168,12 @@ public:
 
 	/// copy Element::ucoe_ut to Element::ucoe_alpt
 	void copy_ucoe_ut_to_ucoe();
+
+	/// copy Element::ucoe_alpt to Element::ucoe_alpt_next
+	void copy_ucoe_current_to_next();
+
+	/// copy Element::ucoe_alpt_next to Element::ucoe_alpt
+	void copy_ucoe_next_to_current();
 
 	/// key member in this class, store all the active elements and its hash key
 	std::unordered_map<int, Element> dg;

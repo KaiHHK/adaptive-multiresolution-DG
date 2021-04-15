@@ -63,6 +63,10 @@ class LagrInterpolation:
 		// this will update VecMultiD<double> fp_intp in class Element
 		void nonlinear_Lagr(std::function<double(std::vector<double>, int, int)> func, std::vector< std::vector<bool> > is_intp);
 
+		// (New version, 2 steps u) Lagrange interpolation for a given nonlinear function func; will update fp_intp in Element
+		// func = func(u_current, u_next, unknown index, variable index) relies on u of current and next steps; u is linear combination of Alpert basis
+		void nonlinear_Lagr(std::function<double(std::vector<double>, std::vector<double>, int, int)> func, std::vector< std::vector<bool> > is_intp);
+
 		void nonlinear_Lagr_fast(std::function<double(std::vector<double>, int, int)> func, 
             					 std::vector< std::vector<bool> > is_intp, FastLagrIntp & fastLagr);
 		void nonlinear_Lagr_fast_full(std::function<double(std::vector<double>, int, int, std::vector<double>)> func,
@@ -107,6 +111,11 @@ protected:
 	// compute numerical solution and flux function at Lagrange basis interpolation points
 
 	void eval_up_fp_Lag(std::function<double(std::vector<double>, int, int)> func, std::vector< std::vector<bool> > is_intp);
+
+	// compute numerical solution and flux function at Lagrange basis interpolation points
+	// overload of function above, with 2 steps unknowns info; will update fp_intp in Element
+	// func = func(u_current, u_next, unknown index, variable index)
+	void eval_up_fp_Lag(std::function<double(std::vector<double>, std::vector<double>, int, int)> func, std::vector< std::vector<bool> > is_intp);
 
 	// compute flux function at Lagrange basis interpolation points
 
@@ -166,6 +175,9 @@ protected:
 	// function to compute Lagrange point value at pos[D] based on Alpt basis
 	
 	void eval_point_val_Alpt_Lag(std::vector<double> & pos, std::vector<int> & m1, std::vector<double> & val);
+
+	// function to compute Lagrangian point values at pos[D] based on alpt basis of NEXT STEP U; similar to above but for next step u
+	void eval_point_val_Alpt_next_Lag(std::vector<double> & pos, std::vector<int> & m1, std::vector<double> & val);
 	
 	// function to compute first derivative value at pos[D] based on Alpt basis
 	// u_x, u_y, ...
@@ -237,6 +249,19 @@ class HermInterpolation:
 	                          std::function<double(std::vector<double>, int, int, int)> func_d1,
 							  std::vector< std::vector<bool> > is_intp);
 
+		/**
+		 * @brief second version of nonlinear_Herm_1D
+		 * 
+		 * @param func 					depend on current and next step u; second std::vector<double> is for next step u
+		 * @param func_d1_current		partial derivative of func to CURRENT step u
+		 * @param func_d1_next 			partial derivative of func to NEXT step u
+		 * @param is_intp 
+		 */
+		void nonlinear_Herm_1D(std::function<double(std::vector<double>, std::vector<double>, int, int)> func,
+							std::function<double(std::vector<double>, std::vector<double>, int, int, int)> func_d1_current,
+							std::function<double(std::vector<double>, std::vector<double>, int, int, int)> func_d1_next,
+							std::vector< std::vector<bool> > is_intp);
+
 		// Hermite interpolation for a given function f(u), u is linear combination of Alpert basis
 		// this will update VecMultiD<double> fp_intp in class Element
 		void nonlinear_Herm_2D(std::function<double(std::vector<double>, int, int)> func,
@@ -286,6 +311,9 @@ class HermInterpolation:
 
 	void eval_up_Her();	
 
+	// compute numerical solution for NEXT step u at Hermite basis interpolation points, based on ucoe_alpt_next in Element class
+	void eval_up_next_Her();
+
 	// compute numerical solution for f(u) at Hermite basis interpolation points
 	// func[i][j][k]: 
 	// i: the number of vector
@@ -308,6 +336,19 @@ class HermInterpolation:
 
 	void eval_fp_Her_1D(std::function<double(std::vector<double>, int, int)> func,
 	                    std::function<double(std::vector<double>, int, int, int)> func_d1,
+						std::vector< std::vector<bool> > is_intp);
+
+	/**
+	 * @brief compute numerical solution for f (while f relies on both current and next step u) at Hermite basis interpolation points
+	 * 
+	 * @param func 					depend on current and next step u; second std::vector<double> is for next step u
+	 * @param func_d1_current		partial derivative of func to CURRENT step u
+	 * @param func_d1_next 			partial derivative of func to NEXT step u
+	 * @param is_intp
+	 */
+	void eval_fp_Her_1D(std::function<double(std::vector<double>, std::vector<double>, int, int)> func,
+						std::function<double(std::vector<double>, std::vector<double>, int, int, int)> func_d1_current,
+						std::function<double(std::vector<double>, std::vector<double>, int, int, int)> func_d1_next,
 						std::vector< std::vector<bool> > is_intp);
 
 	// read function value at Hermite point from exact function directly
@@ -343,6 +384,10 @@ class HermInterpolation:
 	// function to compute Hermite point value at pos[D] based on Alpt basis
 
     void eval_point_val_Alpt_Her(std::vector<double> & pos, std::vector<int> & m1, std::vector<double> & val);
+
+	// function to compute Hermite point values at pos[D] based on Alpt basis coefficients of next step u (ucoe_next), similar to eval_point_val_Alpt_Her above
+
+	void eval_point_val_Alpt_next_Her(std::vector<double> & pos, std::vector<int> & m1, std::vector<double> & val);
 
 	// function to compute point value at pos[D] based on Hermite basis
 

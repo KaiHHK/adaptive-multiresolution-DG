@@ -251,6 +251,68 @@ void LagrInterpolation::eval_up_fp_Lag(std::function<double(std::vector<double>,
 	
 }
 
+// similar as above but involve next step u
+
+void LagrInterpolation::eval_up_fp_Lag(std::function<double(std::vector<double>, std::vector<double>, int, int)> func, std::vector< std::vector<bool> > is_intp)
+{
+	for (auto it = dgsolution_ptr->dg.begin(); it != dgsolution_ptr->dg.end(); it++)
+	{
+		const std::vector<int> & l = it->second.level;
+		const std::vector<int> & j = it->second.suppt;
+
+		std::vector<std::vector<int>> & order = it->second.order_local_intp;
+
+		std::vector< VecMultiD<double> > & up = it->second.up_intp;
+		std::vector< VecMultiD<double> > & up_next = it->second.up_intp_next;   // new: update derivative of u (unknowns) on next step
+
+		std::vector< std::vector< VecMultiD<double> > > & fp = it->second.fp_intp;
+
+		std::vector<double> pos(DIM);
+
+		std::vector<int> p(DIM);
+
+		std::vector<int> m1(DIM);
+
+		for (auto it0 = order.begin(); it0 != order.end(); it0++)
+		{
+			for (int d = 0; d < DIM; d++)
+			{
+				p[d] = (*it0)[d];
+
+				m1[d] = hash_key1d(l[d], j[d]) * (LagrBasis::PMAX + 1) + p[d];
+
+				pos[d] = dgsolution_ptr->all_bas_Lag.at(l[d], j[d], p[d]).intep_pt;
+			}
+
+			////////////////////////
+
+			std::vector<double> val(VEC_NUM, 0.);
+			eval_point_val_Alpt_Lag(pos, m1, val);
+
+			std::vector<double> val_next(VEC_NUM, 0.); // new
+			eval_point_val_Alpt_next_Lag(pos, m1, val_next); // new: these 2 lines for update alpt bais on lag points based on Element::ucoe_next
+
+			for (int i = 0; i < VEC_NUM; i++)
+			{
+				up[i].at(*it0) = val[i];
+				up_next[i].at(*it0) = val_next[i]; // new : update up_next
+			}
+
+			for (int i = 0; i < VEC_NUM; i++)
+			{
+				for (int d = 0; d < DIM; d++)
+				{
+					if (is_intp[i][d] == true)
+					{
+						//fp[i][d].at(*it0) = func(val, i, d);
+						fp[i][d].at(*it0) = func(val, val_next, i, d);  // changed : update fp_intp using both steps unknowns
+					}
+				}	
+			}
+		}
+	}
+}
+
 // compute flux function at Lagrange basis interpolation points
 
 void LagrInterpolation::eval_fp_Lag(std::function<double(std::vector<double>, int, int)> func, std::vector< std::vector<bool> > is_intp)
@@ -1798,6 +1860,77 @@ void LagrInterpolation::eval_point_val_Alpt_Lag(std::vector<double> & pos, std::
 	}
 
 }
+
+
+
+
+// compute LAGRANGIAN point values at pos[D] based on Alpt basis coefficients of next step u (ucoe_next), similar to eval_point_val_Alpt_Lag
+// Details:	
+//      This is essentially copied from eval_point_val_Alpt_Her; the only difference is we use ucoe_alpt_next instead of ucoe_alpt
+void LagrInterpolation::eval_point_val_Alpt_next_Lag(std::vector<double> & pos, std::vector<int> & m1, std::vector<double> & val)
+{
+	for (int i = 0; i < VEC_NUM; i++)
+	{
+		val[i] = 0.;
+	}
+
+	int k;
+
+	for (auto it = dgsolution_ptr->dg.begin(); it != dgsolution_ptr->dg.end(); it++)
+	{
+		const std::vector<int> & l = it->second.level;
+		const std::vector<int> & j = it->second.suppt;
+
+		std::vector<std::vector<int>> & order = it->second.order_local_alpt;
+
+		std::vector< VecMultiD<double> > & ucoe = it->second.ucoe_alpt_next; // changed!!! use ucoe_alpt_next
+
+		std::vector<double> & xl = it->second.xl;
+		std::vector<double> & xr = it->second.xr;
+
+		std::vector<int> p(DIM);
+
+		k = 0;
+
+		// check whether pos[D] is in this element
+
+		for (int d = 0; d < DIM; d++)
+		{
+			if (pos[d] < xl[d] || pos[d] > xr[d])
+			{
+				k = 1;
+			}
+		}
+
+		// if k=0, this means pos[D] is in this element
+		// then do the following step
+
+		if (k == 1) continue;
+
+		int m2 = 0;
+
+		for (auto it0 = order.begin(); it0 != order.end(); it0++)
+		{
+			double tep = 1.0;
+
+			for (int d = 0; d < DIM; d++)
+			{
+				p[d] = (*it0)[d];
+
+				m2 = hash_key1d(l[d], j[d]) * (AlptBasis::PMAX + 1) + p[d];
+
+				tep = tep * Lag_pt_Alpt_1D[m1[d]][m2];
+
+			}
+
+			for (int i = 0; i < VEC_NUM; i++)
+			{
+				val[i] += ucoe[i].at(*it0) * tep;  // no need to change, ucoe is assigned to be coeff in ucoe_next
+			}
+		}
+	}
+}
+
 
 // function to compute first derivative value at pos[D] based on Alpt basis
 // scalar case 
@@ -4028,6 +4161,18 @@ void LagrInterpolation::nonlinear_Lagr(std::function<double(std::vector<double>,
 
 	pw1d.clear();
 
+	eval_fp_to_coe_D_Lag(is_intp); // compute the hierachichal coefficients of the Lag interpolation basis from the point values;
+}
+
+// similar as above
+void LagrInterpolation::nonlinear_Lagr(std::function<double(std::vector<double>, std::vector<double>, int, int)> func, std::vector< std::vector<bool> > is_intp)
+{
+	assert(is_intp.size() == VEC_NUM);
+	for (size_t num = 0; num < VEC_NUM; num++) { assert(is_intp[num].size() == DIM); }
+
+	eval_up_fp_Lag(func, is_intp); // compute the function values for func at all the Lagrange points; 
+								   // we use new version of this, which involves next step u
+	pw1d.clear();
 	eval_fp_to_coe_D_Lag(is_intp); // compute the hierachichal coefficients of the Lag interpolation basis from the point values;
 }
 
